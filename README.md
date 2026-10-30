@@ -9,25 +9,32 @@
 - iPad и веб: экран входа по QR-коду (пока заглушка)
 - Личные чаты, группы и каналы, сообщения в реальном времени
 - В каналах писать могут только владелец и админы (правило в базе)
-- SQL-схема с защитой строк (RLS)
+- SQL-схема с защитой строк (RLS), миграции в `supabase/migrations/` (уже применены к проекту `trio`)
 
 ## Запуск
 
-1. Создай проект на [supabase.com](https://supabase.com).
-2. В **SQL Editor** выполни по порядку файлы из `supabase/migrations/`:
-   `0001_init.sql`, затем `0002_create_chat.sql`.
-3. Скопируй `.env.example` в `.env` и впиши URL проекта и `anon key`
-   (Project Settings → API). Ключ `service_role` сюда не клади.
-4. Для входа по номеру подключи SMS-провайдера (Twilio, Vonage или MessageBird):
-   Authentication → Providers → Phone. Без провайдера работает вход по e-mail.
-5. Установи зависимости и запусти:
-
 ```bash
+cp .env.example .env
 npm install
 npx expo start
 ```
 
 Открой в Expo Go на телефоне или нажми `w` для веб-версии.
+
+## Настройка отправки кодов (Supabase Dashboard)
+
+Код отправляет сам Supabase, в приложении для этого ничего писать не нужно. Нужны настройки в панели:
+
+**E-mail**
+1. Authentication → Email Templates → **Magic Link** (и **Confirm signup**): добавь в текст `{{ .Token }}`,
+   например «Твой код для входа в Трио: {{ .Token }}». Без этого придёт ссылка, а не код.
+2. Встроенная почта Supabase шлёт мало писем в час. Для реальной работы подключи свой SMTP:
+   Authentication → Emails → SMTP Settings. Для Gmail: `smtp.gmail.com`, порт `465`,
+   логин: твой адрес Gmail, пароль: **пароль приложения** (Google Account → Security → App passwords).
+
+**Телефон**
+1. Authentication → Providers → **Phone**: включить и выбрать провайдера (Twilio, Vonage или MessageBird).
+2. Для проверки без SMS можно добавить тестовые номера с фиксированным кодом в тех же настройках.
 
 ## План
 
