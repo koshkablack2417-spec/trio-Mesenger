@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Трио",
+    "slug": "trio-messenger",
+    "scheme": "trio",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": { "supportsTablet": true, "bundleIdentifier": "app.trio.messenger" },
+    "android": { "package": "app.trio.messenger" },
+    "web": { "bundler": "metro" },
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": false }
+  }
+}
