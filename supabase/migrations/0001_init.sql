@@ -51,7 +51,7 @@ create index on public.messages (chat_id, created_at desc);
 -- Вход на iPad / компьютере по QR-коду
 create table public.qr_sessions (
   id uuid primary key default gen_random_uuid(),
-  secret text not null default encode(gen_random_bytes(16), 'hex'),
+  secret text not null default encode(extensions.gen_random_bytes(16), 'hex'),
   approved_by uuid references public.profiles(id),
   device_name text,
   expires_at timestamptz not null default now() + interval '2 minutes',
