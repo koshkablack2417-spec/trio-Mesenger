@@ -124,3 +124,15 @@ export function subscribeToMessages(chatId: string, onInsert: (m: Message) => vo
     supabase.removeChannel(channel);
   };
 }
+
+export const GROUP_MAX_MEMBERS = 300;
+
+/** Добавляет участника по номеру телефона. Лимит проверяет база. */
+export async function addMemberByPhone(chatId: string, phone: string) {
+  const userId = await findUserByPhone(phone);
+  if (!userId) throw new Error(`Нет пользователя с номером ${phone}`);
+  const { error } = await supabase
+    .from('chat_members')
+    .insert({ chat_id: chatId, user_id: userId, role: 'member' });
+  if (error) throw error;
+}
