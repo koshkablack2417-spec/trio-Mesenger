@@ -1,14 +1,25 @@
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { MessageBubble } from '../../../components/MessageBubble';
 import { Button, ErrorText, Input } from '../../../components/ui';
 import { useAuth } from '../../../lib/auth';
 import {
   type Message,
   listMessages,
+  sendContactMessage,
+  sendMessage,
   sendTextMessage,
   subscribeToMessages,
 } from '../../../lib/chats';
+import { pickContact } from '../../../lib/contacts';
+import {
+  type PickedMedia,
+  pickPhoto,
+  pickVideo,
+  recordCircle,
+  uploadMedia,
+} from '../../../lib/media';
 import { colors } from '../../../lib/theme';
 
 export default function ChatScreen() {
@@ -18,6 +29,8 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const listRef = useRef<FlatList<Message>>(null);
 
   useEffect(() => {
@@ -42,6 +55,49 @@ export default function ChatScreen() {
     }
   }
 
+  /** Общая обёртка: закрыть меню, показать «Отправка…», поймать ошибку. */
+  async function run(action: () => Promise<void>) {
+    setError(null);
+    setMenuOpen(false);
+    setBusy(true);
+    try {
+      await action();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendMedia(pick: () => Promise<PickedMedia | null>) {
+    await run(async () => {
+      if (!id || !me) return;
+      const media = await pick();
+      if (!media) return;
+      const path = await uploadMedia(id, media);
+      await sendMessage({
+        chatId: id,
+        senderId: me,
+        kind: media.kind,
+        mediaPath: path,
+        meta: {
+          duration_ms: media.durationMs,
+          width: media.width,
+          height: media.height,
+        },
+      });
+    });
+  }
+
+  async function sendContact() {
+    await run(async () => {
+      if (!id || !me) return;
+      const contact = await pickContact();
+      if (!contact) return;
+      await sendContactMessage(id, me, contact);
+    });
+  }
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -54,19 +110,35 @@ export default function ChatScreen() {
         keyExtractor={(m) => m.id}
         contentContainerStyle={{ padding: 12, gap: 6 }}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-        renderItem={({ item }) => {
-          const mine = item.sender_id === me;
-          return (
-            <View style={[styles.bubble, mine ? styles.mine : styles.other]}>
-              <Text style={styles.bubbleText}>
-                {item.kind === 'text' ? item.body : `[${item.kind}]`}
-              </Text>
-            </View>
-          );
-        }}
+        renderItem={({ item }) => <MessageBubble message={item} mine={item.sender_id === me} />}
       />
+      {busy && <Text style={styles.busy}>Отправка…</Text>}
       <ErrorText>{error}</ErrorText>
+
+      {menuOpen && (
+        <View style={styles.menu}>
+          <View style={styles.menuItem}>
+            <Button title="Фото" variant="secondary" onPress={() => void sendMedia(pickPhoto)} />
+          </View>
+          <View style={styles.menuItem}>
+            <Button title="Видео" variant="secondary" onPress={() => void sendMedia(pickVideo)} />
+          </View>
+          <View style={styles.menuItem}>
+            <Button title="Кружок" variant="secondary" onPress={() => void sendMedia(recordCircle)} />
+          </View>
+          <View style={styles.menuItem}>
+            <Button title="Контакт" variant="secondary" onPress={() => void sendContact()} />
+          </View>
+        </View>
+      )}
+
       <View style={styles.composer}>
+        <Button
+          title={menuOpen ? '×' : '+'}
+          variant="secondary"
+          onPress={() => setMenuOpen((v) => !v)}
+          disabled={busy}
+        />
         <View style={{ flex: 1 }}>
           <Input value={text} onChangeText={setText} placeholder="Сообщение" onSubmitEditing={send} />
         </View>
@@ -77,9 +149,8 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  bubble: { maxWidth: '80%', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
-  mine: { alignSelf: 'flex-end', backgroundColor: colors.bubbleMine },
-  other: { alignSelf: 'flex-start', backgroundColor: colors.bubbleOther },
-  bubbleText: { color: colors.text, fontSize: 16 },
   composer: { flexDirection: 'row', gap: 8, padding: 12, alignItems: 'center' },
+  menu: { flexDirection: 'row', gap: 8, paddingHorizontal: 12 },
+  menuItem: { flex: 1 },
+  busy: { color: colors.muted, textAlign: 'center', paddingVertical: 4 },
 });
