@@ -7,16 +7,26 @@ import { AuthProvider, useAuth } from '../lib/auth';
 import { colors } from '../lib/theme';
 
 function Gate() {
-  const { session, loading } = useAuth();
+  const { session, loading, protect } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     if (loading) return;
-    const inAuth = segments[0] === '(auth)';
-    if (!session && !inAuth) router.replace('/(auth)/welcome');
-    if (session && inAuth) router.replace('/(app)');
-  }, [session, loading, segments, router]);
+    const first = segments[0] as string | undefined;
+    const inAuth = first === '(auth)';
+    const inProtect = first === 'protect';
+
+    if (!session) {
+      if (!inAuth) router.replace('/(auth)/welcome');
+      return;
+    }
+    if (protect.needsProtect) {
+      if (!inProtect) router.replace('/protect');
+      return;
+    }
+    if (inAuth || inProtect) router.replace('/(app)');
+  }, [session, loading, protect.needsProtect, segments, router]);
 
   if (loading) {
     return (
@@ -36,6 +46,10 @@ function Gate() {
     >
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(app)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="protect"
+        options={{ title: 'Защита аккаунта', headerBackVisible: false, gestureEnabled: false }}
+      />
     </Stack>
   );
 }
