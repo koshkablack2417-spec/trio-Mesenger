@@ -44,6 +44,13 @@ npx expo start
 1. Authentication → Providers → **Phone**: включить и выбрать провайдера (Twilio, Vonage или MessageBird).
 2. Для проверки без SMS можно добавить тестовые номера с фиксированным кодом в тех же настройках.
 
+## Сборка файла для установки (EAS Build)
+
+Нужен бесплатный аккаунт на expo.dev. Один раз: `npm i -g eas-cli`, `eas login`, `eas init`.
+
+- **Android (.apk):** `eas build -p android --profile preview`. Через несколько минут EAS даст ссылку на скачивание APK.
+- **iPhone:** нужен платный Apple Developer ($99 в год). `eas build -p ios --profile production`, затем `eas submit -p ios` отправит сборку в TestFlight. Без этого аккаунта установить своё приложение на iPhone нельзя, пока можно пользоваться Expo Go.
+
 ## План
 
 - [x] Основа: вход, чаты, группы, каналы
