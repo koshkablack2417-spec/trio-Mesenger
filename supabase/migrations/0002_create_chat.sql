@@ -41,6 +41,7 @@ begin
   return v_chat;
 end $$;
 
+revoke execute on function public.create_chat(public.chat_kind, text, uuid) from public, anon;
 grant execute on function public.create_chat(public.chat_kind, text, uuid) to authenticated;
 
 -- Поиск человека по номеру телефона для личного чата
@@ -50,4 +51,5 @@ language sql stable security definer set search_path = public as $$
   select id from public.profiles where phone = regexp_replace(p_phone, '\D', '', 'g') limit 1;
 $$;
 
+revoke execute on function public.find_user_by_phone(text) from public, anon;
 grant execute on function public.find_user_by_phone(text) to authenticated;
