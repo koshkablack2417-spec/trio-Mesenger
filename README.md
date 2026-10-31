@@ -35,8 +35,8 @@ npx expo start
 1. Authentication → Email Templates → **Magic Link** (и **Confirm signup**): добавь в текст `{{ .Token }}`,
    например «Твой код для входа в Трио: {{ .Token }}». Без этого придёт ссылка, а не код.
 2. Встроенная почта Supabase шлёт мало писем в час. Для реальной работы подключи свой SMTP:
-   Authentication → Emails → SMTP Settings. Для Gmail: `smtp.gmail.com`, порт `465`,
-   логин: твой адрес Gmail, пароль: **пароль приложения** (Google Account → Security → App passwords).
+   Authentication → Emails → SMTP Settings. Сейчас используется Brevo: хост `smtp-relay.brevo.com`, порт `587`,
+   логин и SMTP-ключ берутся в панели Brevo (SMTP & API → SMTP). Адрес отправителя должен быть подтверждён в Brevo.
 
 3. Шаблон **Change Email Address** (Authentication → Emails → Templates) тоже должен содержать `{{ .Token }}`: он нужен, когда телефонный пользователь добавляет e-mail.
 
