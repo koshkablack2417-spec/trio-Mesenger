@@ -4,7 +4,16 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../lib/auth';
+import { subscribeToIncoming } from '../lib/calls';
 import { colors } from '../lib/theme';
+
+// WebRTC для звонков: есть только в собранном приложении, в Expo Go пропускаем
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  (require('@livekit/react-native') as { registerGlobals: () => void }).registerGlobals();
+} catch {
+  /* нет нативного модуля */
+}
 
 function Gate() {
   const { session, loading, protect } = useAuth();
@@ -28,6 +37,14 @@ function Gate() {
     if (inAuth || inProtect) router.replace('/(app)');
   }, [session, loading, protect.needsProtect, segments, router]);
 
+  const me = session?.user.id;
+  useEffect(() => {
+    if (!me) return;
+    return subscribeToIncoming(me, (c) =>
+      router.push({ pathname: '/call/[id]', params: { id: c.id } }),
+    );
+  }, [me, router]);
+
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center' }}>
@@ -46,6 +63,7 @@ function Gate() {
     >
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(app)" options={{ headerShown: false }} />
+      <Stack.Screen name="call/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
       <Stack.Screen
         name="protect"
         options={{ title: 'Защита аккаунта', headerBackVisible: false, gestureEnabled: false }}

@@ -1,6 +1,6 @@
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MessageBubble } from '../../../components/MessageBubble';
 import { Button, ErrorText, Input } from '../../../components/ui';
 import { useAuth } from '../../../lib/auth';
@@ -12,6 +12,7 @@ import {
   sendTextMessage,
   subscribeToMessages,
 } from '../../../lib/chats';
+import { type CallKind, startCall } from '../../../lib/calls';
 import { pickContact } from '../../../lib/contacts';
 import {
   type PickedMedia,
@@ -25,6 +26,7 @@ import { colors } from '../../../lib/theme';
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
+  const router = useRouter();
   const me = session?.user.id ?? '';
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState('');
@@ -42,6 +44,17 @@ export default function ChatScreen() {
       setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])),
     );
   }, [id]);
+
+  async function call(kind: CallKind) {
+    if (!id || !me) return;
+    setError(null);
+    try {
+      const callId = await startCall(id, me, kind);
+      router.push({ pathname: '/call/[id]', params: { id: callId } });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
 
   async function send() {
     const body = text.trim();
@@ -104,6 +117,20 @@ export default function ChatScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={90}
     >
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              <Pressable onPress={() => void call('audio')} accessibilityLabel="Звонок">
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>Звонок</Text>
+              </Pressable>
+              <Pressable onPress={() => void call('video')} accessibilityLabel="Видеозвонок">
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>Видео</Text>
+              </Pressable>
+            </View>
+          ),
+        }}
+      />
       <FlatList
         ref={listRef}
         data={messages}
