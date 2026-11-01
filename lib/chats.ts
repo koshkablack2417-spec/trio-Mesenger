@@ -6,6 +6,8 @@ export type ChatSummary = {
   id: string;
   kind: ChatKind;
   title: string | null;
+  /** Что показывать в списке: название или имя собеседника */
+  label: string;
 };
 
 export type MessageKind = 'text' | 'image' | 'video' | 'video_circle' | 'contact' | 'file';
@@ -25,13 +27,33 @@ export type Message = {
 
 export const MEDIA_BUCKET = 'chat-media';
 
-export async function listChats(): Promise<ChatSummary[]> {
+type MemberRow = { user_id: string; profiles: { display_name: string; username: string | null } | null };
+
+export function personLabel(p: { display_name: string; username: string | null } | null | undefined) {
+  if (!p) return 'Пользователь';
+  return p.display_name || (p.username ? `@${p.username}` : 'Пользователь');
+}
+
+export async function listChats(me: string): Promise<ChatSummary[]> {
   const { data, error } = await supabase
     .from('chats')
-    .select('id, kind, title')
+    .select('id, kind, title, chat_members(user_id, profiles(display_name, username))')
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []) as ChatSummary[];
+  type Row = { id: string; kind: ChatKind; title: string | null; chat_members: MemberRow[] };
+  return ((data ?? []) as unknown as Row[]).map((c) => {
+    const other = c.chat_members.find((m) => m.user_id !== me);
+    const label =
+      c.title ??
+      (c.kind === 'direct' ? personLabel(other?.profiles) : c.kind === 'group' ? 'Группа' : 'Канал');
+    return { id: c.id, kind: c.kind, title: c.title, label };
+  });
+}
+
+/** Название чата для шапки */
+export async function getChatLabel(chatId: string, me: string): Promise<string> {
+  const all = await listChats(me);
+  return all.find((c) => c.id === chatId)?.label ?? 'Чат';
 }
 
 export async function createChat(kind: ChatKind, title?: string, otherUser?: string) {

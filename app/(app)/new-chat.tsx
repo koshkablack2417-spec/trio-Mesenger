@@ -9,6 +9,7 @@ import {
   createChat,
   findUserByPhone,
 } from '../../lib/chats';
+import { findUserByUsername } from '../../lib/profile';
 import { colors } from '../../lib/theme';
 
 /** Разбирает список номеров из текста: через запятую, пробел или с новой строки. */
@@ -35,8 +36,10 @@ export default function NewChat() {
     setLoading(true);
     try {
       if (kind === 'direct') {
-        const other = await findUserByPhone(phone);
-        if (!other) throw new Error('Пользователь с таким номером не найден в Трио');
+        const q = phone.trim();
+        const byName = q.startsWith('@') || /[a-z_]/i.test(q);
+        const other = byName ? await findUserByUsername(q) : await findUserByPhone(q);
+        if (!other) throw new Error(byName ? `Пользователь ${q} не найден в Трио` : 'Пользователь с таким номером не найден в Трио');
         const id = await createChat('direct', undefined, other);
         router.replace({ pathname: '/chat/[id]', params: { id } });
         return;
@@ -86,12 +89,13 @@ export default function NewChat() {
 
       {kind === 'direct' ? (
         <>
-          <Text style={{ color: colors.muted }}>Номер собеседника (международный формат).</Text>
+          <Text style={{ color: colors.muted }}>Юзернейм (@name) или номер собеседника (международный формат).</Text>
           <Input
             value={phone}
             onChangeText={setPhone}
-            placeholder="+34600111222"
-            keyboardType="phone-pad"
+            placeholder="@username или +34600111222"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
         </>
       ) : (

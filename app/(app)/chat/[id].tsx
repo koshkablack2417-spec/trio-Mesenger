@@ -6,6 +6,7 @@ import { Button, ErrorText, Input } from '../../../components/ui';
 import { useAuth } from '../../../lib/auth';
 import {
   type Message,
+  getChatLabel,
   listMessages,
   sendContactMessage,
   sendMessage,
@@ -33,7 +34,12 @@ export default function ChatScreen() {
   const [error, setError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [title, setTitle] = useState('Чат');
   const listRef = useRef<FlatList<Message>>(null);
+
+  useEffect(() => {
+    if (id && me) getChatLabel(id, me).then(setTitle).catch(() => {});
+  }, [id, me]);
 
   useEffect(() => {
     if (!id) return;
@@ -119,6 +125,7 @@ export default function ChatScreen() {
     >
       <Stack.Screen
         options={{
+          title,
           headerRight: () => (
             <View style={{ flexDirection: 'row', gap: 16 }}>
               <Pressable onPress={() => void call('audio')} accessibilityLabel="Звонок">

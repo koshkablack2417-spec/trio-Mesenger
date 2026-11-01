@@ -58,8 +58,8 @@ export function ErrorText({ children }: { children?: string | null }) {
   return <Text style={styles.error}>{children}</Text>;
 }
 
-export function Screen({ children }: { children: React.ReactNode }) {
-  return <View style={styles.screen}>{children}</View>;
+export function Screen({ children, top }: { children: React.ReactNode; top?: boolean }) {
+  return <View style={[styles.screen, top && { justifyContent: 'flex-start' }]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({

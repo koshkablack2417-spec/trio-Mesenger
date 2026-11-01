@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { type Profile, getProfile } from './profile';
 import { supabase } from './supabase';
 
 // Если false, e-mail-пользователям тоже показывается кнопка «Пропустить»
@@ -20,6 +21,10 @@ type AuthState = {
   session: Session | null;
   loading: boolean;
   protect: ProtectState;
+  /** Профиль загружен, но имя или юзернейм ещё не заданы */
+  needsSetup: boolean;
+  profile: Profile | null;
+  refreshProfile: () => Promise<void>;
   skipProtect: () => Promise<void>;
 };
 
@@ -29,6 +34,9 @@ const AuthContext = createContext<AuthState>({
   session: null,
   loading: true,
   protect: NO_PROTECT,
+  needsSetup: false,
+  profile: null,
+  refreshProfile: async () => {},
   skipProtect: async () => {},
 });
 
@@ -54,6 +62,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [skipped, setSkipped] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const userId = session?.user.id;
+
+  const refreshProfile = useCallback(async () => {
+    if (!userId) {
+      setProfile(null);
+      setProfileLoaded(false);
+      return;
+    }
+    try {
+      setProfile(await getProfile(userId));
+    } catch {
+      setProfile(null);
+    }
+    setProfileLoaded(true);
+  }, [userId]);
+
+  useEffect(() => {
+    void refreshProfile();
+  }, [refreshProfile]);
 
   const loadSkipped = useCallback(async (s: Session | null) => {
     if (!s) return setSkipped(false);
@@ -88,9 +117,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [session]);
 
   const protect = computeProtect(session, skipped);
+  const needsSetup = !!session && profileLoaded && !profile?.username;
 
   return (
-    <AuthContext.Provider value={{ session, loading, protect, skipProtect }}>
+    <AuthContext.Provider value={{ session, loading, protect, needsSetup, profile, refreshProfile, skipProtect }}>
       {children}
     </AuthContext.Provider>
   );

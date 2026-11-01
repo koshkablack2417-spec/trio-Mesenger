@@ -16,7 +16,7 @@ try {
 }
 
 function Gate() {
-  const { session, loading, protect } = useAuth();
+  const { session, loading, protect, needsSetup } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -25,6 +25,7 @@ function Gate() {
     const first = segments[0] as string | undefined;
     const inAuth = first === '(auth)';
     const inProtect = first === 'protect';
+    const inSetup = first === 'setup';
 
     if (!session) {
       if (!inAuth) router.replace('/(auth)/welcome');
@@ -34,8 +35,12 @@ function Gate() {
       if (!inProtect) router.replace('/protect');
       return;
     }
-    if (inAuth || inProtect) router.replace('/(app)');
-  }, [session, loading, protect.needsProtect, segments, router]);
+    if (needsSetup) {
+      if (!inSetup) router.replace('/setup');
+      return;
+    }
+    if (inAuth || inProtect || inSetup) router.replace('/(app)');
+  }, [session, loading, protect.needsProtect, needsSetup, segments, router]);
 
   const me = session?.user.id;
   useEffect(() => {
@@ -64,6 +69,10 @@ function Gate() {
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(app)" options={{ headerShown: false }} />
       <Stack.Screen name="call/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+      <Stack.Screen
+        name="setup"
+        options={{ title: 'Как тебя зовут', headerBackVisible: false, gestureEnabled: false }}
+      />
       <Stack.Screen
         name="protect"
         options={{ title: 'Защита аккаунта', headerBackVisible: false, gestureEnabled: false }}

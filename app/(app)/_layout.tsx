@@ -13,6 +13,7 @@ export default function AppLayout() {
     >
       <Stack.Screen name="index" options={{ title: 'Трио' }} />
       <Stack.Screen name="new-chat" options={{ title: 'Новый чат', presentation: 'modal' }} />
+      <Stack.Screen name="settings" options={{ title: 'Настройки' }} />
       <Stack.Screen name="chat/[id]" options={{ title: 'Чат' }} />
     </Stack>
   );
